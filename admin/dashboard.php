@@ -23,35 +23,35 @@ $pendingCount = $pendingCountStmt->fetchColumn();
     <p>Monitor system activity, track bookings, and manage users from one central control panel.</p>
   </div>
   <div class="card-grid grid-3">
-    <article class="testimonial-card">
-      <strong>Users</strong>
+    <article class="hero-card" style="background:rgba(0,167,255,0.05); border:1px solid rgba(0,167,255,0.15);">
+      <h3 style="color:var(--accent-dark);">Users</h3>
       <p class="text-muted">Registered accounts</p>
-      <p><?= htmlspecialchars($userCount) ?></p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($userCount) ?></p>
     </article>
-    <article class="testimonial-card">
-      <strong>Packages</strong>
+    <article class="hero-card" style="background:rgba(0,167,255,0.05); border:1px solid rgba(0,167,255,0.15);">
+      <h3 style="color:var(--accent-dark);">Packages</h3>
       <p class="text-muted">Active tour packages</p>
-      <p><?= htmlspecialchars($packageCount) ?></p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($packageCount) ?></p>
     </article>
-    <article class="testimonial-card">
-      <strong>Bookings</strong>
-      <p class="text-muted">Total reservations</p>
-      <p><?= htmlspecialchars($bookingCount) ?></p>
+    <article class="hero-card" style="background:rgba(0,167,255,0.05); border:1px solid rgba(0,167,255,0.15);">
+      <h3 style="color:var(--accent-dark);">Total Bookings</h3>
+      <p class="text-muted">All reservations</p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($bookingCount) ?></p>
     </article>
-    <article class="testimonial-card">
-      <strong>Approved</strong>
+    <article class="hero-card" style="background:rgba(33,141,83,0.05); border:1px solid rgba(33,141,83,0.15);">
+      <h3 style="color:var(--success);">Approved</h3>
       <p class="text-muted">Confirmed bookings</p>
-      <p><?= htmlspecialchars($approvedCount) ?></p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($approvedCount) ?></p>
     </article>
-    <article class="testimonial-card">
-      <strong>Pending</strong>
+    <article class="hero-card" style="background:rgba(255,138,43,0.05); border:1px solid rgba(255,138,43,0.15);">
+      <h3 style="color:var(--warning);">Pending</h3>
       <p class="text-muted">Awaiting approval</p>
-      <p><?= htmlspecialchars($pendingCount) ?></p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($pendingCount) ?></p>
     </article>
-    <article class="testimonial-card">
-      <strong>Inquiries</strong>
+    <article class="hero-card" style="background:rgba(0,167,255,0.05); border:1px solid rgba(0,167,255,0.15);">
+      <h3 style="color:var(--accent-dark);">Inquiries</h3>
       <p class="text-muted">Support requests</p>
-      <p><?= htmlspecialchars($inquiryCount) ?></p>
+      <p style="font-size:2rem; font-weight:bold; color:var(--text); margin:0.5rem 0 0;"><?= htmlspecialchars($inquiryCount) ?></p>
     </article>
   </div>
 </section>

@@ -17,6 +17,8 @@ $emailValue = htmlspecialchars($me['email'] ?? '');
       <div class="field"><label>Name</label><input name="name" value="<?= $nameValue ?>" required></div>
       <div class="field"><label>Email</label><input name="email" type="email" value="<?= $emailValue ?>" required></div>
       <div class="field"><label>Package</label><select id="package_id" name="package_id"></select></div>
+      <div class="field"><label>Travel Date</label><input type="date" name="travel_date" value="<?= date('Y-m-d', strtotime('+1 day')) ?>" required></div>
+      <div class="field"><label>Guests Count</label><input type="number" name="guests_count" min="1" value="1" required></div>
       <div class="field"><button type="submit">Continue to payment</button></div>
     </form>
   </div>

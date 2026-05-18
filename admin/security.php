@@ -42,7 +42,11 @@ $staffCount = $stmtStaff->fetchColumn();
     <p>Manage administrator access and view a quick summary of roles within the system.</p>
   </div>
   <?php if($message): ?>
-    <div class="page-alert"><?= htmlspecialchars($message) ?></div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if(window.showToast) window.showToast(<?= json_encode($message) ?>, 'success');
+        });
+    </script>
   <?php endif ?>
   <div class="card-grid grid-2">
     <article class="testimonial-card">

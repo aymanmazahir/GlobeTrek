@@ -10,11 +10,7 @@ $error = isset($_GET['error']);
     <h2>Contact GlobeTrek Adventures</h2>
     <p>Send your travel inquiry, ask about packages, or request support from our team.</p>
   </div>
-  <?php if($sent): ?>
-    <div class="page-alert">Your inquiry was received. Our team will respond shortly.</div>
-  <?php elseif($error): ?>
-    <div class="page-alert">Please complete all fields before submitting the inquiry.</div>
-  <?php endif ?>
+
   <form action="/globetrek/api/submit_inquiry.php" method="post">
     <div class="field"><label>Name</label><input name="name" required></div>
     <div class="field"><label>Email</label><input name="email" type="email" required></div>

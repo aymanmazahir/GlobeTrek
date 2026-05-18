@@ -28,22 +28,17 @@ if($bookingId){
       <input type="hidden" name="booking_id" value="<?= htmlspecialchars($bookingId) ?>">
       <div class="field"><button type="submit">Complete payment</button></div>
     </form>
-    <div id="payment-result" class="page-alert hidden"></div>
     <script type="module">
     import { ajax } from '/globetrek/assets/js/global.js'
     const form = document.getElementById('payment-form')
-    const status = document.getElementById('payment-result')
     form.addEventListener('submit', async e => {
       e.preventDefault()
-      status.classList.add('hidden')
       const data = new FormData(form)
       const resp = await ajax('/globetrek/api/process_payment.php', {method:'POST',body:data})
       if(resp.success){
-        status.textContent = resp.message || 'Payment completed successfully.'
-        status.classList.remove('hidden')
+        if(window.showToast) window.showToast(resp.message || 'Payment completed successfully.', 'success');
       } else {
-        status.textContent = resp.error || 'Payment failed. Please try again.'
-        status.classList.remove('hidden')
+        if(window.showToast) window.showToast(resp.error || 'Payment failed. Please try again.', 'error');
       }
     })
     </script>

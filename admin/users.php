@@ -14,9 +14,26 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       $role = $_POST['role'] ?? 'customer';
       $password = $_POST['password'] ?? '';
       if($name && $email && $password){
-        $pdo->prepare('INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,?,NOW())')
-            ->execute([$name, $email, password_hash($password, PASSWORD_BCRYPT), $role]);
-        $message = 'New user added successfully.';
+        try {
+          $pdo->beginTransaction();
+          $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, created_at) VALUES (?, ?, ?, NOW())');
+          $stmt->execute([$email, password_hash($password, PASSWORD_BCRYPT), $role]);
+          $userId = $pdo->lastInsertId();
+          
+          if ($role === 'staff') {
+            $stmtStaff = $pdo->prepare('INSERT INTO staff (user_id, full_name) VALUES (?, ?)');
+            $stmtStaff->execute([$userId, $name]);
+          } else {
+            $stmtCustomer = $pdo->prepare('INSERT INTO customers (user_id, full_name) VALUES (?, ?)');
+            $stmtCustomer->execute([$userId, $name]);
+          }
+          
+          $pdo->commit();
+          $message = 'New user added successfully.';
+        } catch (Exception $e) {
+          $pdo->rollBack();
+          $message = 'Error adding user: ' . $e->getMessage();
+        }
       } else {
         $message = 'Please complete all user fields.';
       }
@@ -27,14 +44,56 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
       $role = $_POST['role'] ?? 'customer';
       $password = $_POST['password'] ?? '';
       if($name && $email){
-        if($password){
-          $pdo->prepare('UPDATE users SET name = ?, email = ?, role = ?, password_hash = ? WHERE id = ? AND role != ?')
-              ->execute([$name, $email, $role, password_hash($password, PASSWORD_BCRYPT), $userId, 'admin']);
-        } else {
-          $pdo->prepare('UPDATE users SET name = ?, email = ?, role = ? WHERE id = ? AND role != ?')
-              ->execute([$name, $email, $role, $userId, 'admin']);
+        try {
+          $pdo->beginTransaction();
+          
+          // Get current user role
+          $getRole = $pdo->prepare('SELECT role FROM users WHERE id = ?');
+          $getRole->execute([$userId]);
+          $oldRole = $getRole->fetchColumn();
+          
+          if ($password) {
+            $pdo->prepare('UPDATE users SET email = ?, role = ?, password_hash = ? WHERE id = ? AND role != ?')
+                ->execute([$email, $role, password_hash($password, PASSWORD_BCRYPT), $userId, 'admin']);
+          } else {
+            $pdo->prepare('UPDATE users SET email = ?, role = ? WHERE id = ? AND role != ?')
+                ->execute([$email, $role, $userId, 'admin']);
+          }
+          
+          // If role changed, delete from old profile table and insert into new one
+          if ($oldRole && $oldRole !== $role) {
+            if ($oldRole === 'staff') {
+              $pdo->prepare('DELETE FROM staff WHERE user_id = ?')->execute([$userId]);
+            } else {
+              $pdo->prepare('DELETE FROM customers WHERE user_id = ?')->execute([$userId]);
+            }
+          }
+          
+          // Update or Insert in appropriate table
+          if ($role === 'staff') {
+            $check = $pdo->prepare('SELECT COUNT(*) FROM staff WHERE user_id = ?');
+            $check->execute([$userId]);
+            if ($check->fetchColumn() > 0) {
+              $pdo->prepare('UPDATE staff SET full_name = ? WHERE user_id = ?')->execute([$name, $userId]);
+            } else {
+              $pdo->prepare('INSERT INTO staff (user_id, full_name) VALUES (?, ?)')->execute([$userId, $name]);
+            }
+          } else {
+            $check = $pdo->prepare('SELECT COUNT(*) FROM customers WHERE user_id = ?');
+            $check->execute([$userId]);
+            if ($check->fetchColumn() > 0) {
+              $pdo->prepare('UPDATE customers SET full_name = ? WHERE user_id = ?')->execute([$name, $userId]);
+            } else {
+              $pdo->prepare('INSERT INTO customers (user_id, full_name) VALUES (?, ?)')->execute([$userId, $name]);
+            }
+          }
+          
+          $pdo->commit();
+          $message = 'User account updated.';
+        } catch (Exception $e) {
+          $pdo->rollBack();
+          $message = 'Error updating user: ' . $e->getMessage();
         }
-        $message = 'User account updated.';
       } else {
         $message = 'Name and email are required.';
       }
@@ -45,7 +104,15 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   }
 }
 
-$usersStmt = $pdo->prepare('SELECT id,name,email,role,created_at FROM users WHERE role != ? ORDER BY created_at DESC');
+$usersStmt = $pdo->prepare('
+  SELECT u.id, u.email, u.role, u.created_at, 
+         COALESCE(c.full_name, s.full_name) AS name 
+  FROM users u 
+  LEFT JOIN customers c ON c.user_id = u.id 
+  LEFT JOIN staff s ON s.user_id = u.id 
+  WHERE u.role != ? 
+  ORDER BY u.created_at DESC
+');
 $usersStmt->execute(['admin']);
 $users = $usersStmt->fetchAll();
 ?>
@@ -58,7 +125,13 @@ $users = $usersStmt->fetchAll();
     </div>
     <button class="button" data-modal-open="#modalAddUser" data-modal-title="Create new user">Add user</button>
   </div>
-  <?php if($message): ?><div class="page-alert"><?= htmlspecialchars($message) ?></div><?php endif ?>
+  <?php if($message): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if(window.showToast) window.showToast(<?= json_encode($message) ?>, 'success');
+        });
+    </script>
+  <?php endif ?>
   <div class="page-panel">
     <table class="admin-table">
       <thead>

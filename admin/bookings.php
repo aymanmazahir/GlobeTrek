@@ -7,62 +7,47 @@ include __DIR__ . '/../includes/admin-shell.php';
 
 $message = null;
 if($_SERVER['REQUEST_METHOD'] === 'POST'){
-  if(isset($_POST['action'])){
-    if($_POST['action'] === 'add_booking'){
-      $name = trim($_POST['name'] ?? '');
-      $email = trim($_POST['email'] ?? '');
-      $packageId = (int) ($_POST['package_id'] ?? 0);
-      $status = $_POST['status'] ?? 'pending';
-      if($name && $email && $packageId){
-        $pdo->prepare('INSERT INTO bookings (name,email,package_id,status,created_at) VALUES (?,?,?,?,NOW())')
-            ->execute([$name, $email, $packageId, $status]);
-        $message = 'Booking added successfully.';
-      } else {
-        $message = 'Please complete the booking form.';
-      }
-    } elseif($_POST['action'] === 'update_booking' && isset($_POST['booking_id'])){
-      $bookingId = (int) $_POST['booking_id'];
-      $name = trim($_POST['name'] ?? '');
-      $email = trim($_POST['email'] ?? '');
-      $packageId = (int) ($_POST['package_id'] ?? 0);
-      $status = $_POST['status'] ?? 'pending';
-      if($name && $email && $packageId){
-        $pdo->prepare('UPDATE bookings SET name = ?, email = ?, package_id = ?, status = ? WHERE id = ?')
-            ->execute([$name, $email, $packageId, $status, $bookingId]);
-        $message = 'Booking updated successfully.';
-      } else {
-        $message = 'Please complete the booking details.';
-      }
-    } elseif(isset($_POST['booking_id'])){
-      $bookingId = (int) $_POST['booking_id'];
-      if($_POST['action'] === 'approve'){
-        $sth = $pdo->prepare('UPDATE bookings SET status = ? WHERE id = ?');
-        $sth->execute(['approved', $bookingId]);
-        $message = 'Booking approved successfully.';
-      } elseif($_POST['action'] === 'cancel'){
-        $sth = $pdo->prepare('UPDATE bookings SET status = ? WHERE id = ?');
-        $sth->execute(['cancelled', $bookingId]);
-        $message = 'Booking cancelled successfully.';
-      }
+  if(isset($_POST['action']) && isset($_POST['booking_id'])){
+    $bookingId = (int) $_POST['booking_id'];
+    if($_POST['action'] === 'approve'){
+      $sth = $pdo->prepare('UPDATE bookings SET status = ? WHERE id = ?');
+      $sth->execute(['approved', $bookingId]);
+      $message = 'Booking approved successfully.';
+    } elseif($_POST['action'] === 'cancel'){
+      $sth = $pdo->prepare('UPDATE bookings SET status = ? WHERE id = ?');
+      $sth->execute(['cancelled', $bookingId]);
+      $message = 'Booking cancelled successfully.';
     }
   }
 }
 
 $packages = $pdo->query('SELECT id,title FROM packages ORDER BY title')->fetchAll();
-$bookings = $pdo->query('SELECT b.*, p.title AS package_title FROM bookings b LEFT JOIN packages p ON b.package_id = p.id ORDER BY b.created_at DESC')->fetchAll();
+$bookings = $pdo->query('
+  SELECT b.*, c.full_name AS name, u.email, p.title AS package_title 
+  FROM bookings b 
+  JOIN customers c ON b.customer_id = c.id 
+  JOIN users u ON c.user_id = u.id 
+  LEFT JOIN packages p ON b.package_id = p.id 
+  ORDER BY b.created_at DESC
+')->fetchAll();
 ?>
 <section class="page-panel fade-up">
-  <div class="admin-action-row">
+  <div class="admin-action-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
     <div>
       <span class="section-label">Booking management</span>
-      <h2>Monitor and approve bookings</h2>
-      <p>Review recent reservations, confirm approvals, and manage bookings from a single table.</p>
+      <h2>Monitor customer bookings</h2>
+      <p>Review customer reservations, track travel details, and approve or cancel requests.</p>
     </div>
-    <button class="button" data-modal-open="#modalAddBooking" data-modal-title="Add booking">Add booking</button>
   </div>
+  
   <?php if($message): ?>
-    <div class="page-alert"><?= htmlspecialchars($message) ?></div>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if(window.showToast) window.showToast(<?= json_encode($message) ?>, 'success');
+        });
+    </script>
   <?php endif ?>
+  
   <div class="page-panel">
     <table class="admin-table">
       <thead>
@@ -71,22 +56,28 @@ $bookings = $pdo->query('SELECT b.*, p.title AS package_title FROM bookings b LE
           <th>Customer</th>
           <th>Email</th>
           <th>Package</th>
+          <th>Travel Date</th>
+          <th>Guests</th>
+          <th>Total Price</th>
           <th>Status</th>
-          <th>Date</th>
+          <th>Created</th>
           <th>Action</th>
         </tr>
       </thead>
       <tbody>
         <?php foreach($bookings as $booking): ?>
           <tr>
-            <td><?= htmlspecialchars($booking['id']) ?></td>
+            <td>#<?= htmlspecialchars($booking['id']) ?></td>
             <td><?= htmlspecialchars($booking['name']) ?></td>
             <td><?= htmlspecialchars($booking['email']) ?></td>
             <td><?= htmlspecialchars($booking['package_title'] ?: 'Unknown') ?></td>
+            <td><?= htmlspecialchars($booking['travel_date']) ?></td>
+            <td><?= htmlspecialchars($booking['guests_count']) ?></td>
+            <td>$<?= number_format($booking['total_price'], 2) ?></td>
             <td><span class="status-pill status-<?= htmlspecialchars($booking['status'] ?: 'pending') ?>"><?= htmlspecialchars($booking['status'] ?: 'pending') ?></span></td>
             <td><?= htmlspecialchars($booking['created_at']) ?></td>
             <td>
-              <button class="button small ghost" data-modal-open="#modalEditBooking-<?= htmlspecialchars($booking['id']) ?>" data-modal-title="Manage booking">Manage</button>
+              <button class="button small ghost" data-modal-open="#modalViewBooking-<?= htmlspecialchars($booking['id']) ?>" data-modal-title="Booking Details">View Details</button>
             </td>
           </tr>
         <?php endforeach ?>
@@ -95,41 +86,56 @@ $bookings = $pdo->query('SELECT b.*, p.title AS package_title FROM bookings b LE
   </div>
 </section>
 
-<template id="modalAddBooking">
-  <form method="post">
-    <input type="hidden" name="action" value="add_booking">
-    <div class="field"><label>Customer name</label><input name="name" required></div>
-    <div class="field"><label>Email</label><input name="email" type="email" required></div>
-    <div class="field"><label>Package</label><select name="package_id" required>
-      <?php foreach($packages as $package): ?>
-        <option value="<?= htmlspecialchars($package['id']) ?>"><?= htmlspecialchars($package['title']) ?></option>
-      <?php endforeach ?>
-    </select></div>
-    <div class="field"><label>Status</label><select name="status"><option value="pending">Pending</option><option value="approved">Approved</option><option value="cancelled">Cancelled</option></select></div>
-    <div class="field"><button class="button" type="submit">Add booking</button></div>
-  </form>
-</template>
-
+<!-- View Booking Modal Templates -->
 <?php foreach($bookings as $booking): ?>
-<template id="modalEditBooking-<?= htmlspecialchars($booking['id']) ?>">
-  <form method="post">
-    <input type="hidden" name="action" value="update_booking">
-    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
-    <div class="field"><label>Customer name</label><input name="name" value="<?= htmlspecialchars($booking['name']) ?>" required></div>
-    <div class="field"><label>Email</label><input name="email" type="email" value="<?= htmlspecialchars($booking['email']) ?>" required></div>
-    <div class="field"><label>Package</label><select name="package_id" required>
-      <?php foreach($packages as $package): ?>
-        <option value="<?= htmlspecialchars($package['id']) ?>"<?= $package['id'] == $booking['package_id'] ? ' selected' : '' ?>><?= htmlspecialchars($package['title']) ?></option>
-      <?php endforeach ?>
-    </select></div>
-    <div class="field"><label>Status</label><select name="status"><option value="pending"<?= $booking['status'] === 'pending' ? ' selected' : '' ?>>Pending</option><option value="approved"<?= $booking['status'] === 'approved' ? ' selected' : '' ?>>Approved</option><option value="cancelled"<?= $booking['status'] === 'cancelled' ? ' selected' : '' ?>>Cancelled</option></select></div>
-    <div class="field"><button class="button" type="submit">Save changes</button></div>
-  </form>
-  <form method="post" style="margin-top:1rem; display:flex; gap:.75rem; flex-wrap:wrap; align-items:center;">
-    <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
-    <button class="button small" type="submit" name="action" value="approve">Approve</button>
-    <button class="button small ghost" type="submit" name="action" value="cancel">Cancel</button>
-  </form>
+<template id="modalViewBooking-<?= htmlspecialchars($booking['id']) ?>">
+  <div style="font-size:0.95rem; line-height:1.6; color:var(--text);">
+    <div style="margin-bottom:1.5rem; background:rgba(0,167,255,0.05); padding:1rem; border-radius:12px; border:1px solid rgba(0,167,255,0.1);">
+      <h3 style="margin:0 0 0.5rem 0; font-size:1.15rem; color:var(--accent-dark);"><?= htmlspecialchars($booking['package_title'] ?: 'Unknown Package') ?></h3>
+      <p style="margin:0;"><strong>Booking ID:</strong> #<?= htmlspecialchars($booking['id']) ?></p>
+      <p style="margin:0;"><strong>Status:</strong> <span class="status-pill status-<?= htmlspecialchars($booking['status']) ?>" style="font-size:0.8rem;"><?= htmlspecialchars($booking['status']) ?></span></p>
+    </div>
+    
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+      <div>
+        <p style="margin:0 0 0.25rem 0; color:var(--text-muted); font-size:0.85rem;">CUSTOMER NAME</p>
+        <p style="margin:0; font-weight:600;"><?= htmlspecialchars($booking['name']) ?></p>
+      </div>
+      <div>
+        <p style="margin:0 0 0.25rem 0; color:var(--text-muted); font-size:0.85rem;">CUSTOMER EMAIL</p>
+        <p style="margin:0; font-weight:600;"><?= htmlspecialchars($booking['email']) ?></p>
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1.5rem; border-top:1px solid rgba(0,0,0,0.05); padding-top:1rem;">
+      <div>
+        <p style="margin:0 0 0.25rem 0; color:var(--text-muted); font-size:0.85rem;">TRAVEL DATE</p>
+        <p style="margin:0; font-weight:600;"><?= htmlspecialchars($booking['travel_date']) ?></p>
+      </div>
+      <div>
+        <p style="margin:0 0 0.25rem 0; color:var(--text-muted); font-size:0.85rem;">GUESTS COUNT</p>
+        <p style="margin:0; font-weight:600;"><?= htmlspecialchars($booking['guests_count']) ?> Guest(s)</p>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.5rem; border-top:1px solid rgba(0,0,0,0.05); padding-top:1rem;">
+      <p style="margin:0 0 0.25rem 0; color:var(--text-muted); font-size:0.85rem;">TOTAL BOOKING PRICE</p>
+      <p style="margin:0; font-size:1.3rem; font-weight:700; color:var(--success);">$<?= number_format($booking['total_price'], 2) ?></p>
+    </div>
+
+    <?php if($booking['status'] === 'pending'): ?>
+      <div style="border-top:1px solid rgba(0,0,0,0.05); padding-top:1.5rem; display:flex; gap:1rem;">
+        <form method="post" style="margin:0; flex:1;">
+          <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
+          <button type="submit" name="action" value="approve" class="button" style="width:100%; background:var(--success);">Approve Reservation</button>
+        </form>
+        <form method="post" style="margin:0; flex:1;">
+          <input type="hidden" name="booking_id" value="<?= htmlspecialchars($booking['id']) ?>">
+          <button type="submit" name="action" value="cancel" class="button ghost" style="width:100%; color:var(--warning); border-color:var(--warning); background:transparent;" onclick="return confirm('Cancel this reservation?');">Cancel Reservation</button>
+        </form>
+      </div>
+    <?php endif; ?>
+  </div>
 </template>
 <?php endforeach ?>
 

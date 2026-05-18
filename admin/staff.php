@@ -12,9 +12,22 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     if($name && $email && $password){
-      $stmt = $pdo->prepare('INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,?,NOW())');
-      $stmt->execute([$name, $email, password_hash($password, PASSWORD_BCRYPT), 'staff']);
-      $message = 'Staff account created successfully.';
+      try {
+        $pdo->beginTransaction();
+        
+        $stmt = $pdo->prepare('INSERT INTO users (email, password_hash, role, created_at) VALUES (?, ?, ?, NOW())');
+        $stmt->execute([$email, password_hash($password, PASSWORD_BCRYPT), 'staff']);
+        $userId = $pdo->lastInsertId();
+        
+        $stmtStaff = $pdo->prepare('INSERT INTO staff (user_id, full_name) VALUES (?, ?)');
+        $stmtStaff->execute([$userId, $name]);
+        
+        $pdo->commit();
+        $message = 'Staff account created successfully.';
+      } catch (Exception $e) {
+        $pdo->rollBack();
+        $message = 'Error creating staff: ' . $e->getMessage();
+      }
     } else {
       $message = 'Please complete all staff fields.';
     }
@@ -25,14 +38,26 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
     $email = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
     if($name && $email){
-      if($password){
-        $pdo->prepare('UPDATE users SET name = ?, email = ?, password_hash = ? WHERE id = ? AND role = ?')
-            ->execute([$name, $email, password_hash($password, PASSWORD_BCRYPT), $staffId, 'staff']);
-      } else {
-        $pdo->prepare('UPDATE users SET name = ?, email = ? WHERE id = ? AND role = ?')
-            ->execute([$name, $email, $staffId, 'staff']);
+      try {
+        $pdo->beginTransaction();
+        
+        if($password){
+          $pdo->prepare('UPDATE users SET email = ?, password_hash = ? WHERE id = ? AND role = ?')
+              ->execute([$email, password_hash($password, PASSWORD_BCRYPT), $staffId, 'staff']);
+        } else {
+          $pdo->prepare('UPDATE users SET email = ? WHERE id = ? AND role = ?')
+              ->execute([$email, $staffId, 'staff']);
+        }
+        
+        $pdo->prepare('UPDATE staff SET full_name = ? WHERE user_id = ?')
+            ->execute([$name, $staffId]);
+            
+        $pdo->commit();
+        $message = 'Staff account updated successfully.';
+      } catch (Exception $e) {
+        $pdo->rollBack();
+        $message = 'Error updating staff: ' . $e->getMessage();
       }
-      $message = 'Staff account updated successfully.';
     } else {
       $message = 'Name and email are required for updates.';
     }
@@ -44,7 +69,13 @@ if($_SERVER['REQUEST_METHOD'] === 'POST'){
   }
 }
 
-$staffMembers = $pdo->prepare('SELECT id,name,email,created_at FROM users WHERE role = ? ORDER BY created_at DESC');
+$staffMembers = $pdo->prepare('
+  SELECT u.id, u.email, u.created_at, s.full_name AS name 
+  FROM users u 
+  JOIN staff s ON s.user_id = u.id 
+  WHERE u.role = ? 
+  ORDER BY u.created_at DESC
+');
 $staffMembers->execute(['staff']);
 $staffMembers = $staffMembers->fetchAll();
 ?>
@@ -57,7 +88,13 @@ $staffMembers = $staffMembers->fetchAll();
     </div>
     <button class="button" data-modal-open="#modalAddStaff" data-modal-title="Create staff account">Add staff</button>
   </div>
-  <?php if($message): ?><div class="page-alert"><?= htmlspecialchars($message) ?></div><?php endif ?>
+  <?php if($message): ?>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if(window.showToast) window.showToast(<?= json_encode($message) ?>, 'success');
+        });
+    </script>
+  <?php endif ?>
   <div class="page-panel">
     <table class="admin-table">
       <thead>

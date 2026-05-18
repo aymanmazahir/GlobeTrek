@@ -7,6 +7,7 @@ $adminNav = [
   ['label' => 'Dashboard', 'href' => '/globetrek/admin/dashboard.php', 'key' => 'dashboard.php'],
   ['label' => 'Staff', 'href' => '/globetrek/admin/staff.php', 'key' => 'staff.php'],
   ['label' => 'Users', 'href' => '/globetrek/admin/users.php', 'key' => 'users.php'],
+  ['label' => 'Packages', 'href' => '/globetrek/admin/packages.php', 'key' => 'packages.php'],
   ['label' => 'Bookings', 'href' => '/globetrek/admin/bookings.php', 'key' => 'bookings.php'],
   ['label' => 'Reports', 'href' => '/globetrek/admin/reports.php', 'key' => 'reports.php'],
   ['label' => 'Security', 'href' => '/globetrek/admin/security.php', 'key' => 'security.php'],

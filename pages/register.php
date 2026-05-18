@@ -8,9 +8,7 @@ $error = isset($_GET['error']);
     <h2>Create your account</h2>
     <p>Register now to book your next trip, save your details, and track your travel plans.</p>
   </div>
-  <?php if($error): ?>
-    <div class="page-alert">Please complete all fields to register.</div>
-  <?php endif ?>
+
   <form method="post" action="/globetrek/api/register.php">
     <div class="field"><label>Name</label><input name="name" required></div>
     <div class="field"><label>Email</label><input name="email" type="email" required></div>

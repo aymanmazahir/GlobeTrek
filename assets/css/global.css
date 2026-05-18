@@ -1005,3 +1005,60 @@ textarea {
   font-size: .95rem;
   line-height: 1.8
 }
+
+/* Toast Notifications */
+#toast-container {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.toast {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text);
+  padding: 16px 24px;
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(16, 34, 55, 0.15);
+  border-left: 6px solid var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  pointer-events: auto;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.4s ease;
+}
+
+.toast.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast.success {
+  border-left-color: var(--success);
+}
+.toast.success::before {
+  content: "✅";
+}
+
+.toast.error {
+  border-left-color: var(--warning);
+}
+.toast.error::before {
+  content: "⚠️";
+}
+
+.toast.info {
+  border-left-color: var(--accent);
+}
+.toast.info::before {
+  content: "ℹ️";
+}

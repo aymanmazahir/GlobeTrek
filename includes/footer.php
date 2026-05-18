@@ -25,6 +25,34 @@
   </div>
 </footer>
 <?php endif ?>
+<div id="toast-container"></div>
 <script type="module" src="/globetrek/assets/js/global.js"></script>
+<script>
+    // Global Toast Handler
+    document.addEventListener("DOMContentLoaded", () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        let message = null;
+        let type = 'info';
+
+        if (urlParams.has('added') || urlParams.has('registered') || urlParams.has('updated') || urlParams.has('success') || urlParams.has('sent')) {
+            message = 'Action completed successfully.';
+            type = 'success';
+        } else if (urlParams.has('error')) {
+            message = 'An error occurred. Please try again.';
+            type = 'error';
+        } else if (urlParams.has('expired') || urlParams.has('cancelled')) {
+            message = 'Item has been cancelled or expired.';
+            type = 'error';
+        }
+
+        // Custom messages if set via session could go here, 
+        // but since the system primarily uses GET params, this catches them.
+        if (message && window.showToast) {
+            window.showToast(message, type);
+            // Clean URL so it doesn't fire again on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    });
+</script>
 </body>
 </html>
