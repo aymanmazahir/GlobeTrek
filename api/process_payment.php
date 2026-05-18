@@ -6,7 +6,15 @@ if(!$bookingId){
   echo json_encode(['success'=>false,'error'=>'Missing booking ID']);
   exit;
 }
-$sth = $pdo->prepare('SELECT b.id,b.name,b.email,p.title,p.price FROM bookings b JOIN packages p ON p.id=b.package_id WHERE b.id=? LIMIT 1');
+$sth = $pdo->prepare('
+  SELECT b.id, c.full_name AS name, u.email, p.title, p.price 
+  FROM bookings b 
+  JOIN customers c ON b.customer_id = c.id
+  JOIN users u ON c.user_id = u.id
+  JOIN packages p ON p.id = b.package_id 
+  WHERE b.id = ? 
+  LIMIT 1
+');
 $sth->execute([$bookingId]);
 $booking = $sth->fetch();
 if(!$booking){

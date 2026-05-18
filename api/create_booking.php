@@ -18,20 +18,32 @@ try {
   $pdo->beginTransaction();
   
   // Find or create customer
-  $stmt = $pdo->prepare('SELECT c.id FROM customers c JOIN users u ON c.user_id = u.id WHERE u.email = ?');
-  $stmt->execute([$email]);
-  $customerId = $stmt->fetchColumn();
+  // 1. Check if user already exists
+  $stmtUserCheck = $pdo->prepare('SELECT id FROM users WHERE email = ?');
+  $stmtUserCheck->execute([$email]);
+  $userId = $stmtUserCheck->fetchColumn();
   
-  if(!$customerId){
-    // Create new user
+  if ($userId) {
+    // User exists, check if they have a customer record
+    $stmtCustCheck = $pdo->prepare('SELECT id FROM customers WHERE user_id = ?');
+    $stmtCustCheck->execute([$userId]);
+    $customerId = $stmtCustCheck->fetchColumn();
+    
+    if (!$customerId) {
+      // Create customer profile for existing user
+      $stmtCust = $pdo->prepare('INSERT INTO customers (user_id, full_name) VALUES (?, ?)');
+      $stmtCust->execute([$userId, $name]);
+      $customerId = $pdo->lastInsertId();
+    }
+  } else {
+    // User doesn't exist, create user and customer profile
     $hash = password_hash('Customer123', PASSWORD_BCRYPT);
     $stmtUser = $pdo->prepare('INSERT INTO users (email, password_hash, role) VALUES (?, ?, "customer")');
     $stmtUser->execute([$email, $hash]);
-    $newUserId = $pdo->lastInsertId();
+    $userId = $pdo->lastInsertId();
     
-    // Create customer profile
     $stmtCust = $pdo->prepare('INSERT INTO customers (user_id, full_name) VALUES (?, ?)');
-    $stmtCust->execute([$newUserId, $name]);
+    $stmtCust->execute([$userId, $name]);
     $customerId = $pdo->lastInsertId();
   }
   

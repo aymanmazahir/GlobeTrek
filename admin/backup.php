@@ -7,10 +7,10 @@ include __DIR__ . '/../includes/admin-shell.php';
 
 if(isset($_GET['download'])){
   $files = [
-    'users' => $pdo->query('SELECT id,name,email,role,created_at FROM users ORDER BY id')->fetchAll(),
-    'packages' => $pdo->query('SELECT id,title,summary,price FROM packages ORDER BY id')->fetchAll(),
-    'bookings' => $pdo->query('SELECT id,user_id,name,email,package_id,status,created_at FROM bookings ORDER BY id')->fetchAll(),
-    'inquiries' => $pdo->query('SELECT id,name,email,message,created_at FROM inquiries ORDER BY id')->fetchAll(),
+    'users' => $pdo->query('SELECT id, email, role, created_at FROM users ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),
+    'packages' => $pdo->query('SELECT id, title, destination, summary, price, image_url, status FROM packages ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),
+    'bookings' => $pdo->query('SELECT id, customer_id, package_id, travel_date, guests_count, status, total_price, created_at FROM bookings ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),
+    'inquiries' => $pdo->query('SELECT id, name, email, message, created_at FROM inquiries ORDER BY id')->fetchAll(PDO::FETCH_ASSOC),
   ];
 
   $archiveName = 'globetrek-backup-' . date('Ymd-His');

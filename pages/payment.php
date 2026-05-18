@@ -5,7 +5,15 @@ require_once __DIR__ . '/../includes/db.php';
 $bookingId = intval($_GET['booking_id'] ?? 0);
 $booking = null;
 if($bookingId){
-  $sth = $pdo->prepare('SELECT b.id,b.name,b.email,b.created_at,p.title,p.price FROM bookings b JOIN packages p ON p.id=b.package_id WHERE b.id = ? LIMIT 1');
+  $sth = $pdo->prepare('
+    SELECT b.id, b.created_at, b.total_price, c.full_name AS name, u.email, p.title 
+    FROM bookings b 
+    JOIN customers c ON b.customer_id = c.id
+    JOIN users u ON c.user_id = u.id
+    JOIN packages p ON p.id = b.package_id 
+    WHERE b.id = ? 
+    LIMIT 1
+  ');
   $sth->execute([$bookingId]);
   $booking = $sth->fetch();
 }
@@ -22,7 +30,7 @@ if($bookingId){
     <div class="page-panel">
       <p><strong>Package:</strong> <?= htmlspecialchars($booking['title']) ?></p>
       <p><strong>Customer:</strong> <?= htmlspecialchars($booking['name']) ?> (<?= htmlspecialchars($booking['email']) ?>)</p>
-      <p><strong>Amount:</strong> $<?= number_format($booking['price'],2) ?></p>
+      <p><strong>Amount:</strong> $<?= number_format($booking['total_price'],2) ?></p>
     </div>
     <form id="payment-form">
       <input type="hidden" name="booking_id" value="<?= htmlspecialchars($bookingId) ?>">
