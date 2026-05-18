@@ -1,0 +1,7 @@
+/* booking.css */
+.form-card{background:linear-gradient(180deg, #ffffff 0%, #f4fbff 100%);padding:2rem;border-radius:28px;max-width:760px;margin:0 auto;box-shadow:0 30px 70px rgba(16,34,55,.08);border:1px solid rgba(16,34,55,.08)}
+.field{margin-bottom:1.3rem}
+.field label{display:block;margin-bottom:.55rem;font-weight:600;color:var(--text)}
+.field input,.field select,.field textarea{width:100%;padding:1rem;border:1px solid rgba(16,34,55,.12);border-radius:18px;background:var(--surface-soft);transition:border-color .25s ease,box-shadow .25s ease}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,150,255,.14)}
+button{width:auto;min-width:150px}

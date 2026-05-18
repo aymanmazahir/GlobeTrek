@@ -1,0 +1,3 @@
+/* dashboard.css */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+.card{background:#fff;padding:1rem;border-radius:6px}
